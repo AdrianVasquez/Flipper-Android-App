@@ -15,6 +15,7 @@ import com.flipperdevices.bridge.api.manager.delegates.FlipperActionNotifier
 import com.flipperdevices.bridge.api.manager.ktx.state.ConnectionState
 import com.flipperdevices.bridge.api.manager.ktx.state.FlipperSupportedState
 import com.flipperdevices.bridge.api.manager.ktx.stateAsFlow
+import com.flipperdevices.bridge.api.manager.observers.SuspendConnectionObserver
 import com.flipperdevices.bridge.api.utils.Constants
 import com.flipperdevices.bridge.impl.manager.delegates.FlipperConnectionInformationApiImpl
 import com.flipperdevices.bridge.impl.manager.service.FlipperInformationApiImpl
@@ -23,6 +24,7 @@ import com.flipperdevices.bridge.impl.manager.service.RestartRPCApiImpl
 import com.flipperdevices.bridge.impl.manager.service.request.FlipperRequestApiImpl
 import com.flipperdevices.bridge.impl.manager.service.requestservice.FlipperRtcUpdateService
 import com.flipperdevices.bridge.impl.utils.BridgeImplConfig.BLE_VLOG
+import com.flipperdevices.bridge.impl.utils.RemoveBondHelper
 import com.flipperdevices.bridge.impl.utils.initializeSafe
 import com.flipperdevices.bridge.impl.utils.onServiceReceivedSafe
 import com.flipperdevices.core.di.SingleIn
@@ -39,11 +41,16 @@ import com.flipperdevices.core.preference.pb.Settings
 import com.squareup.anvil.annotations.ContributesBinding
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.filter
+import kotlinx.coroutines.flow.filterIsInstance
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import no.nordicsemi.android.ble.ConnectRequest
 import no.nordicsemi.android.ble.ConnectionPriorityRequest
 import no.nordicsemi.android.ble.Request
+import no.nordicsemi.android.ble.observer.ConnectionObserver
 import javax.inject.Inject
 import javax.inject.Provider
 
@@ -82,8 +89,14 @@ class FlipperBleManagerImpl @Inject constructor(
     // Manager delegates
     override val connectionInformationApi = FlipperConnectionInformationApiImpl(this)
 
+
     init {
         info { "FlipperBleManagerImpl: ${this.hashCode()}" }
+        subscribeOnConnectionState(object : SuspendConnectionObserver {
+            override suspend fun onDeviceDisconnected(
+                device: BluetoothDevice, reason: Int
+            ) = handleDisconnect(device, reason)
+        })
     }
 
     override suspend fun disconnectDevice() {
@@ -115,6 +128,21 @@ class FlipperBleManagerImpl @Inject constructor(
 
         // Wait until device is really connected
         stateAsFlow().filter { it is ConnectionState.Initializing }.first()
+    }
+
+    private suspend fun handleDisconnect(
+        device: BluetoothDevice,
+        reason: Int
+    ) {
+        info { "Receive disconnected with code ${reason}" }
+        if (reason == ConnectionObserver.REASON_TIMEOUT) {
+            val result = RemoveBondHelper.removeBand(device)
+            info { "Try remove bond from device  ${device.address}. Is successful: ${result.getOrNull()}" }
+            result.exceptionOrNull()?.let {
+                error(it) { "Failed remove bond" }
+            }
+            scope.launch { connectToDevice(device) }
+        }
     }
 
     override fun log(priority: Int, message: String) {
