@@ -65,7 +65,7 @@ jobs:
       - id: create_baseline_task
         run: |
           build_variant_uppercase=${{ steps.create_uppercase_variant.outputs.BUILD_VARIANT_NAME_UPPERCASE }}
-          no_test_param="-P android.testInstrumentationRunnerArguments.androidx.benchmark.enabledRules=BaselineProfile"
+          no_test_param="-P android.testInstrumentationRunnerArguments.androidx.benchmark.enabledRules=BaselineProfile -Pandroid.experimental.testOptions.managedDevices.setupTimeoutMinutes=3"
           task_name="pixel7Api34Setup"
           path=":instances:android:baselineprofile"          
           gradlew_full_task="$path:$task_name $no_test_param  --stacktrace --info"
