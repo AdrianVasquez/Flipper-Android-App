@@ -81,6 +81,10 @@ jobs:
           echo "BASELINE_FILE_PATH ${{ steps.create_baseline_file_path.outputs.BASELINE_FILE_PATH }}"
           echo "BASELINE_TASK ${{ steps.create_baseline_task.outputs.BASELINE_TASK }}"
 
+#      - name: Run baseline profiles
+#        run: |
+#          apt-get install libx11-6:i386
+
       - name: Run baseline profiles
         run: |
           ./gradlew ${{ steps.create_baseline_task.outputs.BASELINE_TASK }}
