@@ -66,7 +66,7 @@ jobs:
         run: |
           build_variant_uppercase=${{ steps.create_uppercase_variant.outputs.BUILD_VARIANT_NAME_UPPERCASE }}
           no_test_param="-P android.testInstrumentationRunnerArguments.androidx.benchmark.enabledRules=BaselineProfile"
-          task_name="pixel6Api31Setup"
+          task_name="pixel7Api34Setup"
           path=":instances:android:baselineprofile"          
           gradlew_full_task="$path:$task_name $no_test_param  --stacktrace --info"
           echo "BASELINE_TASK=$gradlew_full_task" >> $GITHUB_OUTPUT

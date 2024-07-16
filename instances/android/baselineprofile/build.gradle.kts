@@ -22,16 +22,16 @@ android {
     targetProjectPath = projects.instances.android.app.identityPath.path
 
     testOptions.managedDevices.devices {
-        create<ManagedVirtualDevice>("pixel6Api31") {
-            device = "Pixel 6"
-            apiLevel = 31
-            systemImageSource = "google-atd"
+        create<ManagedVirtualDevice>("pixel7Api34") {
+            device = "Pixel 7"
+            apiLevel = 34
+            systemImageSource = "aosp"
         }
     }
 }
 
 baselineProfile {
-    managedDevices += "pixel6Api31"
+    managedDevices += "pixel7Api34"
     useConnectedDevices = false
 }
 
